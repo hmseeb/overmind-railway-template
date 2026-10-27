@@ -1,0 +1,254 @@
+{
+  "$note": "Build sheet for Overmind (overmind-core/overmind, AGPL-3.0, pinned to tag v0.1.18 of 2026-10-26). Upstream ships no image, so .github/workflows/build.yml builds upstream's own Dockerfile unmodified (overmind-railway-base) and layers the Console, Caddy and a boot script on top (image/). Topology differs from compose on purpose: compose runs the API and six Celery workers sharing one app_data volume, and settings.py says dataset files bypass Django storage and write to MEDIA_ROOT, so on Railway (one volume per service) API, workers and beat must share a container (image/start.sh). Grafana is dropped (it reads the hosted product's CloudWatch via AWS SSO). The sandbox stays its own service because it runs user code and must hold no app secrets. Policy gate: CLEAR; only the deployer receives traffic. Open sign-up is closed after the first account (image/patch_signup.py) and guest sessions are refused at Caddy, because otherwise any stranger with the URL gets an account that spends the deployer's OpenRouter key and runs sandbox code. upsert.py strips every $note key and mints fresh UUIDs.",
+  "name": "Overmind",
+  "services": {
+    "Overmind": {
+      "icon": "https://avatars.githubusercontent.com/u/208257599",
+      "source": {
+        "image": "ghcr.io/hmseeb/overmind-railway:v0.1.18-r2"
+      },
+      "deploy": {
+        "$note": "CMD is /usr/local/bin/overmind-start; set explicitly because Railway discards ENTRYPOINT and some deploy paths drop CMD. /health is Django's own and goes through Caddy, so a pass proves proxy, gunicorn and database.",
+        "startCommand": "/usr/local/bin/overmind-start",
+        "healthcheckPath": "/health",
+        "restartPolicyType": "ALWAYS"
+      },
+      "volumeMounts": {
+        "mountPath": "/data"
+      },
+      "networking": {
+        "port": 8080
+      },
+      "variables": {
+        "PORT": {
+          "defaultValue": "8080",
+          "description": "Caddy listens here and serves the Console plus the API on one domain."
+        },
+        "OVERMIND_PUBLIC_URL": {
+          "$note": "Baked into the Console at boot in place of VITE_API_BASE_URL (a build-time Vite variable upstream points at api.overmindlab.ai), so the SDK and MCP snippets the Console shows point at this deployment.",
+          "defaultValue": "https://${{RAILWAY_PUBLIC_DOMAIN}}",
+          "description": "Public URL of this deployment. Change it if you add a custom domain."
+        },
+        "OPENROUTER_API_KEY": {
+          "description": "Required. Every judge, eval, trace score and optimiser call goes through OpenRouter. Get one at https://openrouter.ai/keys"
+        },
+        "OPENAI_API_KEY": {
+          "defaultValue": "",
+          "isOptional": true,
+          "description": "Optional. Only the embedding_cosine evaluator uses it."
+        },
+        "OVERMIND_OPEN_SIGNUP": {
+          "defaultValue": "false",
+          "description": "The first account to sign in becomes the only one. Invite teammates from a project, or set true to let anyone with the URL create an account."
+        },
+        "DJANGO_SECRET_KEY": {
+          "defaultValue": "${{secret(64)}}",
+          "description": "Signs sessions and JWTs."
+        },
+        "FIELD_ENCRYPTION_KEY": {
+          "$note": "A Fernet key is 32 bytes as urlsafe base64: 43 alphabet chars plus one '=' pad. Python's decoder ignores the unused low bits of the last char.",
+          "defaultValue": "${{secret(43, \"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_\")}}=",
+          "description": "Encrypts stored provider credentials. Never change it after first boot."
+        },
+        "DJANGO_DEBUG": {
+          "defaultValue": "False",
+          "description": "Production mode."
+        },
+        "DJANGO_ALLOWED_HOSTS": {
+          "$note": "healthcheck.railway.app is the Host header of Railway's prober; without it Django 400s every healthcheck.",
+          "defaultValue": "${{RAILWAY_PUBLIC_DOMAIN}},healthcheck.railway.app,localhost,127.0.0.1",
+          "description": "Hostnames Django answers. Add a custom domain here."
+        },
+        "DJANGO_CORS_ALLOWED_ORIGINS": {
+          "defaultValue": "https://${{RAILWAY_PUBLIC_DOMAIN}}",
+          "description": "The Console is same-origin; kept explicit for clarity."
+        },
+        "DJANGO_ADMIN_PATH": {
+          "defaultValue": "admin${{secret(16, \"abcdefghijklmnopqrstuvwxyz0123456789\")}}",
+          "description": "Unguessable path of the Django admin, as upstream recommends for public deployments."
+        },
+        "FRONTEND_URL": {
+          "defaultValue": "https://${{RAILWAY_PUBLIC_DOMAIN}}",
+          "description": "Used in links the API generates."
+        },
+        "MCP_SERVER_URL": {
+          "defaultValue": "https://${{RAILWAY_PUBLIC_DOMAIN}}/api/mcp/",
+          "description": "Canonical MCP resource URL for OAuth discovery by coding agents."
+        },
+        "POSTGRES_HOST": {
+          "defaultValue": "${{Postgres.RAILWAY_PRIVATE_DOMAIN}}",
+          "description": "Database host."
+        },
+        "POSTGRES_PORT": {
+          "defaultValue": "5432",
+          "description": "Database port."
+        },
+        "POSTGRES_DB": {
+          "defaultValue": "${{Postgres.POSTGRES_DB}}",
+          "description": "Database name."
+        },
+        "POSTGRES_USER": {
+          "defaultValue": "${{Postgres.POSTGRES_USER}}",
+          "description": "Database user."
+        },
+        "POSTGRES_PASSWORD": {
+          "defaultValue": "${{Postgres.POSTGRES_PASSWORD}}",
+          "description": "Database password."
+        },
+        "CELERY_BROKER_URL": {
+          "defaultValue": "redis://default:${{Redis.REDIS_PASSWORD}}@${{Redis.RAILWAY_PRIVATE_DOMAIN}}:6379/0",
+          "description": "Task queue."
+        },
+        "CELERY_RESULT_BACKEND": {
+          "defaultValue": "redis://default:${{Redis.REDIS_PASSWORD}}@${{Redis.RAILWAY_PRIVATE_DOMAIN}}:6379/0",
+          "description": "Task results."
+        },
+        "SANDBOX_URL": {
+          "defaultValue": "http://${{Sandbox.RAILWAY_PRIVATE_DOMAIN}}:8080",
+          "description": "Isolated runner for document parsing and Data Workshop code."
+        },
+        "SANDBOX_TOKEN": {
+          "defaultValue": "${{Sandbox.SANDBOX_TOKEN}}",
+          "description": "Shared with the Sandbox service."
+        },
+        "DATA_ROOT": {
+          "defaultValue": "/data",
+          "description": "On the volume."
+        },
+        "MEDIA_ROOT": {
+          "defaultValue": "/data/media",
+          "description": "Uploads and dataset files, on the volume."
+        },
+        "TMPDIR": {
+          "defaultValue": "/data/tmp",
+          "description": "Scratch space, on the volume (large uploads spill here)."
+        },
+        "HOME": {
+          "defaultValue": "/data/tmp",
+          "description": "Matches upstream compose."
+        },
+        "FINETUNING_BACKEND": {
+          "defaultValue": "modal",
+          "description": "Upstream accepts only modal."
+        },
+        "MODAL_ENVIRONMENT": {
+          "defaultValue": "overmind",
+          "description": "Modal environment for training and serving."
+        },
+        "MODAL_TOKEN_ID": {
+          "$note": "The API refuses to boot while any of these eight are empty (settings.py _REQUIRED_KEYS) but only reads them when fine-tuning or serving runs; upstream's own boot test (tests/journeys/test_boot.py) starts it with fake values. Placeholders keep tracing, evals and datasets working out of the box.",
+          "defaultValue": "not-configured",
+          "description": "Fine-tuning only. Modal token id from https://modal.com/settings/tokens"
+        },
+        "MODAL_TOKEN_SECRET": {
+          "defaultValue": "not-configured",
+          "description": "Fine-tuning only. Modal token secret."
+        },
+        "INFERENCE_API_URL": {
+          "defaultValue": "not-configured",
+          "description": "Fine-tuning only. The endpoint printed by modal deploy."
+        },
+        "INFERENCE_API_KEY": {
+          "defaultValue": "not-configured",
+          "description": "Fine-tuning only. Shared secret also set in the Modal secret overmind-inference."
+        },
+        "AWS_ACCESS_KEY_ID": {
+          "defaultValue": "not-configured",
+          "description": "Fine-tuning only. S3 checkpoint archive."
+        },
+        "AWS_SECRET_ACCESS_KEY": {
+          "defaultValue": "not-configured",
+          "description": "Fine-tuning only. S3 checkpoint archive."
+        },
+        "AWS_BUCKET_NAME": {
+          "defaultValue": "not-configured",
+          "description": "Fine-tuning only. S3 checkpoint archive bucket."
+        },
+        "HF_TOKEN": {
+          "defaultValue": "not-configured",
+          "description": "Fine-tuning only. Hugging Face token for gated base models."
+        }
+      }
+    },
+    "Sandbox": {
+      "icon": "https://devicons.railway.app/i/docker.svg",
+      "source": {
+        "image": "ghcr.io/hmseeb/overmind-railway:v0.1.18-r2"
+      },
+      "deploy": {
+        "$note": "Upstream's sandbox (python -m sandbox) from the same image, bound to :: for Railway's IPv6 private network. Upstream runs it as root so each run gets its own uid, which needs CAP_SYS_PTRACE; Railway grants no extra capabilities (verified: 'The sandbox needs CAP_SYS_PTRACE to see the files a run holds open.'). So it runs as nobody with upstream's SANDBOX_ALLOW_SHARED_UID=1: every run shares one uid. The container still holds no app secrets, database or volume, which is the boundary that matters. No public domain, no healthcheck: only Overmind calls it.",
+        "startCommand": "/bin/sh -c \"cd /code && exec setpriv --reuid=65534 --regid=65534 --clear-groups python -m sandbox --host ::\"",
+        "restartPolicyType": "ALWAYS"
+      },
+      "variables": {
+        "SANDBOX_TOKEN": {
+          "defaultValue": "${{secret(48)}}",
+          "description": "Bearer token Overmind uses to call the sandbox."
+        },
+        "SANDBOX_MEMORY_BYTES": {
+          "defaultValue": "0",
+          "description": "Per-run memory cap in bytes; 0 means none (upstream default)."
+        },
+        "SANDBOX_OCR_WORKERS": {
+          "defaultValue": "2",
+          "description": "Parallel OCR workers for scanned documents."
+        },
+        "SANDBOX_ALLOW_SHARED_UID": {
+          "defaultValue": "1",
+          "description": "Runs share one unprivileged uid; Railway cannot grant the ptrace capability per-run uids need."
+        }
+      }
+    },
+    "Postgres": {
+      "icon": "https://devicons.railway.app/i/postgresql.svg",
+      "source": {
+        "$note": "Upstream compose runs pgvector/pgvector:pg16: migration 0001 creates the vector extension. Pinned to a concrete tag.",
+        "image": "pgvector/pgvector:0.8.1-pg16-bookworm"
+      },
+      "deploy": {
+        "$note": "settings.py hardcodes sslmode=require whenever DJANGO_DEBUG is off, and plain postgres images serve no TLS (\"server does not support SSL, but SSL was required\"). First boot generates a self-signed cert on the volume, unique per deployment (the image's snakeoil key is identical for every pull); require mode encrypts without verifying, which is what Django asks for. Entrypoint re-invoked because Railway discards it.",
+        "startCommand": "/bin/sh -c \"C=/var/lib/postgresql/data/certs; mkdir -p $C && [ -s $C/server.key ] || openssl req -new -x509 -days 3650 -nodes -subj /CN=overmind-postgres -keyout $C/server.key -out $C/server.crt 2>/dev/null; chown -R postgres:postgres $C && chmod 600 $C/server.key && exec docker-entrypoint.sh postgres -c ssl=on -c ssl_cert_file=$C/server.crt -c ssl_key_file=$C/server.key\"",
+        "restartPolicyType": "ALWAYS"
+      },
+      "volumeMounts": {
+        "mountPath": "/var/lib/postgresql/data"
+      },
+      "variables": {
+        "POSTGRES_USER": {
+          "defaultValue": "overmind",
+          "description": "Database user."
+        },
+        "POSTGRES_DB": {
+          "defaultValue": "overmind",
+          "description": "Database name."
+        },
+        "POSTGRES_PASSWORD": {
+          "defaultValue": "${{secret(32)}}",
+          "description": "Database password."
+        },
+        "PGDATA": {
+          "$note": "Railway volumes ship lost+found at the mount root and initdb refuses a non-empty directory.",
+          "defaultValue": "/var/lib/postgresql/data/pgdata",
+          "description": "Data directory, a subdirectory of the volume."
+        }
+      }
+    },
+    "Redis": {
+      "icon": "https://devicons.railway.app/i/redis.svg",
+      "source": {
+        "image": "redis:7.4.2"
+      },
+      "deploy": {
+        "$note": "No volume on purpose: Redis is only the Celery broker and result store; state lives in Postgres. Entrypoint re-invoked because Railway discards it; sh wrapper so the password expands.",
+        "startCommand": "/bin/sh -c \"exec docker-entrypoint.sh redis-server --requirepass \\\"$REDIS_PASSWORD\\\"\"",
+        "restartPolicyType": "ALWAYS"
+      },
+      "variables": {
+        "REDIS_PASSWORD": {
+          "defaultValue": "${{secret(32)}}",
+          "description": "Redis password."
+        }
+      }
+    }
+  }
+}

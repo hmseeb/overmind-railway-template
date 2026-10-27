@@ -23,16 +23,13 @@ import rw  # noqa: E402
 from upsert import strip_notes  # noqa: E402
 
 HERE = pathlib.Path(__file__).parent
-SECRET = re.compile(r'^\$\{\{\s*secret\((\d+)(?:,\s*"([^"]+)")?\)\s*\}\}$')
+SECRET = re.compile(r'\$\{\{\s*secret\((\d+)(?:,\s*"([^"]+)")?\)\s*\}\}')
 
 
 def live_value(v):
-    """A live project cannot evaluate ${{secret()}}; generate the literal here."""
-    m = SECRET.match(v)
-    if not m:
-        return v
-    alphabet = m.group(2) or string.ascii_letters + string.digits
-    return "".join(secrets.choice(alphabet) for _ in range(int(m.group(1))))
+    """A live project cannot evaluate ${{secret()}}; generate the literal here (also mid-string)."""
+    return SECRET.sub(lambda m: "".join(secrets.choice(m.group(2) or string.ascii_letters + string.digits)
+                                        for _ in range(int(m.group(1)))), v)
 
 
 def main():

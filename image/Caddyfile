@@ -11,8 +11,11 @@
 	encode gzip
 
 	# Guest sessions create throwaway accounts for anyone; off on a public deployment.
+	# Its own handle, first: a bare respond sorts after handle and never fires.
 	@guest path /api/auth/guest /api/auth/guest/*
-	respond @guest `{"detail":"Guest sessions are disabled on this deployment."}` 403
+	handle @guest {
+		respond `{"detail":"Guest sessions are disabled on this deployment."}` 403
+	}
 
 	# Everything Django and the MCP/OAuth server answer (overbae/urls.py, services/mcp/oauth_routes.py).
 	@backend path /api/* /v1/* /health /robots.txt /.well-known/* /register /authorize /token /revoke /{$DJANGO_ADMIN_PATH:admin} /{$DJANGO_ADMIN_PATH:admin}/*
