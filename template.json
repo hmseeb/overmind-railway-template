@@ -3,7 +3,7 @@
   "name": "Overmind",
   "services": {
     "Overmind": {
-      "icon": "https://avatars.githubusercontent.com/u/208257599",
+      "icon": "https://raw.githubusercontent.com/overmind-core/overmind/v0.1.18/frontend/public/favicon.png",
       "source": {
         "image": "ghcr.io/hmseeb/overmind-railway:v0.1.18-r2"
       },
@@ -33,7 +33,6 @@
           "description": "Required. Every judge, eval, trace score and optimiser call goes through OpenRouter. Get one at https://openrouter.ai/keys"
         },
         "OPENAI_API_KEY": {
-          "defaultValue": "",
           "isOptional": true,
           "description": "Optional. Only the embedding_cosine evaluator uses it."
         },
