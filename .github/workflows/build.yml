@@ -1,0 +1,55 @@
+name: Build and push image
+
+on:
+  push:
+    branches: [main]
+    paths: ["image/**", ".github/workflows/build.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  # Bump OVERMIND_REF for a new upstream release; bump REV for a change to image/ only.
+  OVERMIND_REF: v0.1.18
+  REV: r1
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: overmind-core/overmind
+          ref: ${{ env.OVERMIND_REF }}
+          path: upstream
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # Upstream's own Dockerfile, unmodified: the backend every service runs.
+      - uses: docker/build-push-action@v6
+        with:
+          context: upstream
+          push: true
+          platforms: linux/amd64
+          tags: ghcr.io/${{ github.repository_owner }}/overmind-railway-base:${{ env.OVERMIND_REF }}
+          cache-from: type=gha,scope=base
+          cache-to: type=gha,mode=max,scope=base
+      - uses: docker/build-push-action@v6
+        with:
+          context: image
+          build-contexts: upstream=upstream
+          build-args: BASE=ghcr.io/${{ github.repository_owner }}/overmind-railway-base:${{ env.OVERMIND_REF }}
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/overmind-railway:${{ env.OVERMIND_REF }}-${{ env.REV }}
+            ghcr.io/${{ github.repository_owner }}/overmind-railway:latest
+          cache-from: type=gha,scope=final
+          cache-to: type=gha,mode=max,scope=final
