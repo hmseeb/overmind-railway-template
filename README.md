@@ -2,6 +2,8 @@
 
 Railway template for [Overmind](https://github.com/overmind-core/overmind) (AGPL-3.0), the platform for continuously improving AI agents. The deployer guide is [TEMPLATE_OVERVIEW.md](TEMPLATE_OVERVIEW.md); it is also the marketplace listing.
 
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/overmind)
+
 ## Layout
 
 | Path | What |

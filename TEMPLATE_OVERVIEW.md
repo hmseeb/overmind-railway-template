@@ -52,7 +52,7 @@ Create a project, then create a project API key under Settings. In your agent:
 ```
 pip install "overmind[tracing]"
 export OVERMIND_API_KEY=ovr_...
-export OVERMIND_API_URL=https://<your-overmind-domain>
+export OVERMIND_API_URL=https://your-overmind.up.railway.app
 ```
 
 ```python
@@ -65,11 +65,11 @@ with overmind.run("support-run", intent=question) as run:
     run.deliver(answer)
 ```
 
-The trace appears under Observability within a few seconds. Any OpenTelemetry exporter can also post to `https://<your-overmind-domain>/api/v1/traces`.
+The trace appears under Observability within a few seconds. Any OpenTelemetry exporter can also post to `https://your-overmind.up.railway.app/api/v1/traces`.
 
 **Connecting a coding agent over MCP**
 
-The MCP server is at `https://<your-overmind-domain>/api/mcp/`. Use a project or account API key as a bearer token, or let the client sign in through OAuth.
+The MCP server is at `https://your-overmind.up.railway.app/api/mcp/`. Use a project or account API key as a bearer token, or let the client sign in through OAuth.
 
 **What works out of the box, and what needs more accounts**
 
