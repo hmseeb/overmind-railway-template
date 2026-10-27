@@ -1,13 +1,13 @@
 # Overmind for Railway: upstream's backend image plus the Console, served together.
-# Build contexts: `upstream` = overmind-core/overmind checked out at OVERMIND_REF,
+# Build contexts: `console-src` = frontend/ of overmind-core/overmind at OVERMIND_REF,
 # BASE = upstream's own Dockerfile built from that checkout (see .github/workflows/build.yml).
 ARG BASE
 
 FROM oven/bun:1.3.5 AS console
 WORKDIR /app
-COPY --from=upstream frontend/package.json frontend/bun.lock ./
+COPY --from=console-src package.json bun.lock ./
 RUN bun install --frozen-lockfile
-COPY --from=upstream frontend/ ./
+COPY --from=console-src . ./
 # .env.production carries the hosted Clerk key, PostHog key and api.overmindlab.ai.
 # The placeholder is swapped for the deployment's public URL at boot (start.sh).
 RUN rm -f .env .env.* \
