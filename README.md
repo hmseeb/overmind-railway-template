@@ -12,6 +12,7 @@ Railway template for [Overmind](https://github.com/overmind-core/overmind) (AGPL
 | `image/` | The `ghcr.io/hmseeb/overmind-railway` image: upstream's backend image plus the Console (built with a URL placeholder), Caddy, `start.sh` (API, workers, beat and Caddy in one container) and `patch_signup.py` (closes open sign-up after the first account). |
 | `.github/workflows/build.yml` | Builds upstream's Dockerfile unmodified at `OVERMIND_REF`, then the layer above. Bump `OVERMIND_REF` for a new release, `REV` for an `image/` change. |
 | `test/image.sh` | Contract checks on the built image. |
+| `test/console_patches.sh`, `test/start_idempotent.sh` | Run in CI before the build: upstream's bun patch files reach the frozen install, and `start.sh` boots again after an in-place restart. |
 | `upsert.py` | Writes `template.json` to the Railway template (`templateUpsertConfig`) and asserts it back field by field. |
 | `build_source.py`, `deploy_as_stranger.py`, `status.py` | Live verification: materialize the sheet into a project, deploy the template into a fresh project, read deploy status and logs. |
 
