@@ -5,7 +5,7 @@
     "Overmind": {
       "icon": "https://raw.githubusercontent.com/overmind-core/overmind/v0.1.18/frontend/public/favicon.png",
       "source": {
-        "image": "ghcr.io/hmseeb/overmind-railway:v0.1.32-r1"
+        "image": "ghcr.io/hmseeb/overmind-railway:v0.1.32-r2"
       },
       "deploy": {
         "$note": "CMD is /usr/local/bin/overmind-start; set explicitly because Railway discards ENTRYPOINT and some deploy paths drop CMD. /health is Django's own and goes through Caddy, so a pass proves proxy, gunicorn and database.",
@@ -172,7 +172,7 @@
     "Sandbox": {
       "icon": "https://devicons.railway.app/i/docker.svg",
       "source": {
-        "image": "ghcr.io/hmseeb/overmind-railway:v0.1.32-r1"
+        "image": "ghcr.io/hmseeb/overmind-railway:v0.1.32-r2"
       },
       "deploy": {
         "$note": "Upstream's sandbox (python -m sandbox) from the same image, bound to :: for Railway's IPv6 private network. Upstream runs it as root so each run gets its own uid, which needs CAP_SYS_PTRACE; Railway grants no extra capabilities (verified: 'The sandbox needs CAP_SYS_PTRACE to see the files a run holds open.'). So it runs as nobody with upstream's SANDBOX_ALLOW_SHARED_UID=1: every run shares one uid. The container still holds no app secrets, database or volume, which is the boundary that matters. No public domain, no healthcheck: only Overmind calls it.",
@@ -202,7 +202,7 @@
       "icon": "https://devicons.railway.app/i/postgresql.svg",
       "source": {
         "$note": "Upstream compose runs pgvector/pgvector:pg16: migration 0001 creates the vector extension. Pinned to a concrete tag.",
-        "image": "pgvector/pgvector:0.8.1-pg16-bookworm"
+        "image": "pgvector/pgvector:0.8.7-pg16-bookworm"
       },
       "deploy": {
         "$note": "settings.py hardcodes sslmode=require whenever DJANGO_DEBUG is off, and plain postgres images serve no TLS (\"server does not support SSL, but SSL was required\"). First boot generates a self-signed cert on the volume, unique per deployment (the image's snakeoil key is identical for every pull); require mode encrypts without verifying, which is what Django asks for. Entrypoint re-invoked because Railway discards it.",
@@ -235,7 +235,7 @@
     "Redis": {
       "icon": "https://devicons.railway.app/i/redis.svg",
       "source": {
-        "image": "redis:7.4.2"
+        "image": "redis:7.4.12"
       },
       "deploy": {
         "$note": "No volume on purpose: Redis is only the Celery broker and result store; state lives in Postgres. Entrypoint re-invoked because Railway discards it; sh wrapper so the password expands.",

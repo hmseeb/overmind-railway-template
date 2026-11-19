@@ -5,7 +5,9 @@ set -euo pipefail
 cd /code
 
 : "${OVERMIND_PUBLIC_URL:?set OVERMIND_PUBLIC_URL to https://<your domain>}"
-grep -rl __OVERMIND_PUBLIC_URL__ /srv/console | xargs -r sed -i "s#__OVERMIND_PUBLIC_URL__#${OVERMIND_PUBLIC_URL%/}#g"
+# In-place restarts keep the filesystem: on a 2nd start nothing matches and grep exits 1,
+# which pipefail would turn into a silent exit. `|| true` keeps it a no-op.
+{ grep -rl __OVERMIND_PUBLIC_URL__ /srv/console || true; } | xargs -r sed -i "s#__OVERMIND_PUBLIC_URL__#${OVERMIND_PUBLIC_URL%/}#g"
 
 mkdir -p "${MEDIA_ROOT:-/data/media}" "${TMPDIR:-/data/tmp}"
 
