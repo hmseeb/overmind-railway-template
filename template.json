@@ -1,11 +1,11 @@
 {
-  "$note": "Build sheet for Overmind (overmind-core/overmind, AGPL-3.0, pinned to tag v0.1.18 of 2026-10-26). Upstream ships no image, so .github/workflows/build.yml builds upstream's own Dockerfile unmodified (overmind-railway-base) and layers the Console, Caddy and a boot script on top (image/). Topology differs from compose on purpose: compose runs the API and six Celery workers sharing one app_data volume, and settings.py says dataset files bypass Django storage and write to MEDIA_ROOT, so on Railway (one volume per service) API, workers and beat must share a container (image/start.sh). Grafana is dropped (it reads the hosted product's CloudWatch via AWS SSO). The sandbox stays its own service because it runs user code and must hold no app secrets. Policy gate: CLEAR; only the deployer receives traffic. Open sign-up is closed after the first account (image/patch_signup.py) and guest sessions are refused at Caddy, because otherwise any stranger with the URL gets an account that spends the deployer's OpenRouter key and runs sandbox code. upsert.py strips every $note key and mints fresh UUIDs.",
+  "$note": "Build sheet for Overmind (overmind-core/overmind, AGPL-3.0, pinned to tag v0.1.32 of 2026-11-11). Upstream ships no image, so .github/workflows/build.yml builds upstream's own Dockerfile unmodified (overmind-railway-base) and layers the Console, Caddy and a boot script on top (image/). Topology differs from compose on purpose: compose runs the API and six Celery workers sharing one app_data volume, and settings.py says dataset files bypass Django storage and write to MEDIA_ROOT, so on Railway (one volume per service) API, workers and beat must share a container (image/start.sh). Grafana is dropped (it reads the hosted product's CloudWatch via AWS SSO). The sandbox stays its own service because it runs user code and must hold no app secrets. Policy gate: CLEAR; only the deployer receives traffic. Open sign-up is closed after the first account (image/patch_signup.py) and guest sessions are refused at Caddy, because otherwise any stranger with the URL gets an account that spends the deployer's OpenRouter key and runs sandbox code. upsert.py strips every $note key and mints fresh UUIDs.",
   "name": "Overmind",
   "services": {
     "Overmind": {
       "icon": "https://raw.githubusercontent.com/overmind-core/overmind/v0.1.18/frontend/public/favicon.png",
       "source": {
-        "image": "ghcr.io/hmseeb/overmind-railway:v0.1.18-r2"
+        "image": "ghcr.io/hmseeb/overmind-railway:v0.1.32-r1"
       },
       "deploy": {
         "$note": "CMD is /usr/local/bin/overmind-start; set explicitly because Railway discards ENTRYPOINT and some deploy paths drop CMD. /health is Django's own and goes through Caddy, so a pass proves proxy, gunicorn and database.",
@@ -172,7 +172,7 @@
     "Sandbox": {
       "icon": "https://devicons.railway.app/i/docker.svg",
       "source": {
-        "image": "ghcr.io/hmseeb/overmind-railway:v0.1.18-r2"
+        "image": "ghcr.io/hmseeb/overmind-railway:v0.1.32-r1"
       },
       "deploy": {
         "$note": "Upstream's sandbox (python -m sandbox) from the same image, bound to :: for Railway's IPv6 private network. Upstream runs it as root so each run gets its own uid, which needs CAP_SYS_PTRACE; Railway grants no extra capabilities (verified: 'The sandbox needs CAP_SYS_PTRACE to see the files a run holds open.'). So it runs as nobody with upstream's SANDBOX_ALLOW_SHARED_UID=1: every run shares one uid. The container still holds no app secrets, database or volume, which is the boundary that matters. No public domain, no healthcheck: only Overmind calls it.",

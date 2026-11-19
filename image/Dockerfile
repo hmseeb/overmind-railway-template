@@ -6,6 +6,8 @@ ARG BASE
 FROM oven/bun:1.3.5 AS console
 WORKDIR /app
 COPY --from=console-src package.json bun.lock ./
+# patchedDependencies (v0.1.32+) must exist before the frozen install.
+COPY --from=console-src patches/ ./patches/
 RUN bun install --frozen-lockfile
 COPY --from=console-src . ./
 # .env.production carries the hosted Clerk key, PostHog key and api.overmindlab.ai.

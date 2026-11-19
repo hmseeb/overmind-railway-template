@@ -8,7 +8,7 @@ This template runs the full Overmind platform in one Railway project: the API, t
 
 You only need one key to deploy: an OpenRouter API key, which Overmind uses for every judge, eval and scoring call. Traces, datasets and evaluation results stay in your own Postgres database and volume.
 
-The image is built from Overmind v0.1.18 and pinned, so a redeploy never pulls a surprise upgrade.
+The image is built from Overmind v0.1.32 and pinned, so a redeploy never pulls a surprise upgrade.
 
 ## Common Use Cases
 
